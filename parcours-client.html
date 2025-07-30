@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Parcours Client Oriasol</title>
+</head>
+<body style="font-family: Arial, sans-serif; background: #f0f0f0; padding: 40px;">
+  <div id="parcours-client" style="max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px;">
+    <h2>Construisons votre projet solaire 🌞</h2>
+    <div id="question"></div>
+    <div id="reponses"></div>
+  </div>
+
+  <script>
+    const parcours = [
+      { question: "Êtes-vous propriétaire de votre logement ?", options: ["Oui", "Non"] },
+      { question: "Quel type de logement ?", options: ["Maison individuelle", "Appartement en copropriété"] },
+      { question: "Avez-vous un espace pour installer des panneaux ?", options: ["Toit", "Jardin", "Garage", "Je ne sais pas"] },
+      { question: "Quel est votre objectif principal ?", options: ["Réduire mes factures", "Devenir autonome", "Valoriser mon bien"] },
+      { question: "Souhaitez-vous un financement ?", options: ["Oui", "Non", "Je veux être conseillé(e)"] }
+    ];
+
+    let current = 0;
+    let reponses = [];
+
+    function afficherQuestion() {
+      const q = parcours[current];
+      document.getElementById("question").innerHTML = `<p><strong>${q.question}</strong></p>`;
+      document.getElementById("reponses").innerHTML = "";
+
+      q.options.forEach(opt => {
+        const btn = document.createElement("button");
+        btn.textContent = opt;
+        btn.style.margin = "5px";
+        btn.onclick = () => {
+          reponses.push({ question: q.question, reponse: opt });
+          current++;
+          if (current < parcours.length) {
+            afficherQuestion();
+          } else {
+            finDuParcours();
+          }
+        };
+        document.getElementById("reponses").appendChild(btn);
+      });
+    }
+
+    function finDuParcours() {
+      document.getElementById("question").innerHTML = "<h3>Merci ! Voici vos réponses :</h3>";
+      const ul = document.createElement("ul");
+      reponses.forEach(r => {
+        const li = document.createElement("li");
+        li.textContent = `${r.question} → ${r.reponse}`;
+        ul.appendChild(li);
+      });
+      document.getElementById("reponses").innerHTML = "";
+      document.getElementById("reponses").appendChild(ul);
+    }
+
+    afficherQuestion();
+  </script>
+</body>
+</html>
