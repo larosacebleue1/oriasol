@@ -1,54 +1,49 @@
 import os
 import shutil
-import tempfile
+from pathlib import Path
 import tkinter as tk
 from tkinter import messagebox
 
-# Dossiers à nettoyer
-clean_targets = {
-    "Temp Utilisateur": tempfile.gettempdir(),
-    "Temp Windows": r"C:\Windows\Temp",
-    "Cache DirectX": os.path.expandvars(r"%LocalAppData%\D3DSCache"),
-    "Logs Windows": r"C:\Windows\Logs",
-    "Cache Windows Update": r"C:\Windows\SoftwareDistribution\Download"
-}
-
 def clean_folder(path):
     deleted = 0
-    if os.path.exists(path):
+    try:
         for item in os.listdir(path):
+            item_path = os.path.join(path, item)
             try:
-                item_path = os.path.join(path, item)
                 if os.path.isfile(item_path) or os.path.islink(item_path):
                     os.unlink(item_path)
                     deleted += 1
                 elif os.path.isdir(item_path):
-                    shutil.rmtree(item_path, ignore_errors=True)
+                    shutil.rmtree(item_path)
                     deleted += 1
-            except:
-                pass
+            except Exception as e:
+                print(f"Impossible de supprimer : {item_path} ({e})")
+    except Exception as e:
+        print(f"Accès refusé à : {path} ({e})")
     return deleted
 
-def launch_clean():
+def run_cleaning():
+    folders_to_clean = [
+        os.getenv('TEMP'),
+        os.getenv('TMP'),
+        str(Path.home() / "AppData" / "Local" / "Temp"),
+    ]
+
     total_deleted = 0
-    for label, path in clean_targets.items():
-        total_deleted += clean_folder(path)
-    messagebox.showinfo("Nettoyage terminé", f"{total_deleted} fichiers ou dossiers supprimés ✅")
+    for folder in folders_to_clean:
+        total_deleted += clean_folder(folder)
 
-def run_app():
-    app = tk.Tk()
-    app.title("Oriasol Cleaner")
-    app.geometry("320x200")
-    app.resizable(False, False)
+    messagebox.showinfo("Nettoyage terminé", f"{total_deleted} fichiers/dossiers supprimés.")
 
-    tk.Label(app, text="ORIASOL CLEANER", font=("Arial", 14, "bold")).pack(pady=10)
-    tk.Label(app, text="Votre PC, propre comme jamais", font=("Arial", 10)).pack()
+# Interface utilisateur
+window = tk.Tk()
+window.title("Oriasol Cleaner")
+window.geometry("300x150")
 
-    tk.Button(app, text="Lancer le nettoyage", command=launch_clean,
-              bg="#007acc", fg="white", font=("Arial", 11)).pack(pady=15)
+btn_clean = tk.Button(window, text="🧹 Lancer le nettoyage", command=run_cleaning, font=("Arial", 12))
+btn_clean.pack(pady=20)
 
-    tk.Button(app, text="Quitter", command=app.quit, font=("Arial", 10)).pack()
+btn_quit = tk.Button(window, text="Quitter", command=window.quit, font=("Arial", 10))
+btn_quit.pack()
 
-    app.mainloop()
-
-run_app()
+window.mainloop()
