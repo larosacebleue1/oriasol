@@ -1,0 +1,109 @@
+
+import numpy as np
+import matplotlib.pyplot as plt
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+import datetime
+import os
+
+# Fonction onboarding
+def onboarding():
+    print("=== Oriasol Mini Prototype 2025 ===")
+    print("Bienvenue ! Oriasol : Hub PV & Rénovation pour Indépendance Énergétique")
+    type_user = input("Êtes-vous : 1) Consommateur (acheter énergie verte), 2) Équipé (revendre surplus), 3) Partenaire (voir scalabilité) ? Entrez 1, 2 ou 3: ")
+    if type_user == "1":
+        consumption = input("Votre consommation annuelle (kWh, ex. 5000): ")
+        return "Consommateur", float(consumption) if consumption.replace(".", "").isdigit() else 5000
+    elif type_user == "2":
+        surplus = input("Votre production surplus annuelle (kWh, ex. 2000): ")
+        return "Équipé", float(surplus) if surplus.replace(".", "").isdigit() else 2000
+    elif type_user == "3":
+        return "Partenaire", 0
+    else:
+        print("Entrée invalide, choix par défaut : Partenaire")
+        return "Partenaire", 0
+
+# Fonction simulation ROI - Mis à jour avec fin obligation d'achat et hausses tarifs
+def simulate_roi(type_user, value, include_renovation=False, include_mena=False, post_obligation=True):
+    # Paramètres 2025 - Ajustés pour fin obligation et hausses
+    base_cost_pv = 10000  # Coût PV (€)
+    renovation_cost = 5000  # Coût rénovation
+    electricity_price = 0.22  # €/kWh (hausse +10% vs 2024, TVA 20%)
+    rachat_price = 0.12  # €/kWh (rachat Oriasol, post-obligation)
+    mena_cost_reduction = 0.8  # -20% coûts MENA
+    post_obligation_boost = 1.1  # +10% économies autoconsommation post-obligation
+
+    total_cost = base_cost_pv
+    if include_renovation:
+        total_cost += renovation_cost
+    if include_mena:
+        total_cost *= mena_cost_reduction
+    
+    years = np.arange(1, 6)  # Projection 5 ans pour graphique
+    if type_user == "Consommateur":
+        savings = value * electricity_price * 0.3  # Économies -30% base
+        if post_obligation:
+            savings *= post_obligation_boost  # Boost +10% post-obligation
+        roi_years = total_cost / savings
+        cumulative_savings = savings * years
+        return f"Consommateur: Économies annuelles {savings:.2f} € (boost post-obligation), ROI {roi_years:.1f} ans", cumulative_savings
+    elif type_user == "Équipé":
+        revenue = value * rachat_price
+        if post_obligation:
+            revenue *= 1.15  # +15% revenus rachat post-obligation (marché libre)
+        roi_years = total_cost / revenue
+        cumulative_revenue = revenue * years
+        return f"Équipé: Revenus annuels {revenue:.2f} € (hausse tarifs boost), ROI {roi_years:.1f} ans", cumulative_revenue
+    else:
+        return "Partenaire: Scalabilité MENA +20%, rénovation +30% revenus", None
+
+# Fonction graphique ROI
+def plot_roi(cumulative_data, user_type, filename="roi_plot.png"):
+    if cumulative_data is not None:
+        plt.figure(figsize=(6, 4))
+        plt.plot(np.arange(1, 6), cumulative_data, label=f"{user_type} - Gains Cumulés")
+        plt.axhline(y=10000, color='r', linestyle='--', label='Coût PV (10k €)')
+        plt.xlabel("Années")
+        plt.ylabel("Gains (€)")
+        plt.title(f"Oriasol ROI Simulation - {user_type}")
+        plt.legend()
+        plt.grid(True)
+        plt.savefig(filename)
+        plt.close()
+
+# Fonction PDF - Mis à jour avec infos fin obligation/hausses
+def generate_pdf_report(user_type, value, simulation_result, plot_file, filename="oriasol_prototype_report.pdf"):
+    c = canvas.Canvas(filename, pagesize=letter)
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(100, 750, "Oriasol Mini Prototype Report - 2025")
+    c.setFont("Helvetica", 12)
+    c.drawString(100, 700, f"Type Utilisateur: {user_type}")
+    c.drawString(100, 680, f"Valeur Saisie: {value} kWh")
+    c.drawString(100, 660, "Résultat Simulation:")
+    c.drawString(120, 640, simulation_result)
+    c.drawString(100, 620, "Note: Fin obligation d'achat (200 kWc 2026) et hausses tarifs (+10-20%) boostent demandes installations PV (+72% autoconsommation).")
+    if plot_file and os.path.exists(plot_file):
+        c.drawImage(plot_file, 100, 400, width=300, height=200)
+    c.drawString(100, 360, f"Date: {datetime.date.today()}")
+    c.drawString(100, 340, "Pour partenaires: Contact Mohammed, contact@oriasol.com")
+    c.save()
+    print(f"PDF généré : {filename}")
+
+# Main
+def main():
+    user_type, value = onboarding()
+    include_renovation = input("Inclure rénovation énergétique (ex. isolation) ? (y/n): ").lower() == 'y'
+    include_mena = input("Inclure scalabilité MENA (via intros réseau) ? (y/n): ").lower() == 'y'
+    
+    result, cumulative_data = simulate_roi(user_type, value, include_renovation, include_mena)
+    print("\n=== Résultat Simulation ===")
+    print(result)
+    
+    plot_file = "roi_plot.png" if user_type in ["Consommateur", "Équipé"] else None
+    if plot_file:
+        plot_roi(cumulative_data, user_type, plot_file)
+    generate_pdf_report(user_type, value, result, plot_file)
+    print("\nMontrez ce PDF à vos partenaires !")
+
+if __name__ == "__main__":
+    main()
